@@ -81,7 +81,14 @@ ggplot(salesGenreYear, aes(x=Year, y = sales, group = Genre, colour = Genre)) +
   labs(x = "Year", y = "Sales (in millions)", title = "Sales per genre, per year") + 
   scale_x_discrete(guide = guide_axis(check.overlap = TRUE))
 
-# evolution of sales per console
+
+# evolution of sales per console during their lifetime (lines)
+
+# most sold genre per console (bars)
+
+# percentage of genre for top10 publisher (piechart?)
+
+# sales for top20 publiser (bars)
 
 
 
