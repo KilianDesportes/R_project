@@ -5,6 +5,7 @@ library(tidyverse)
 
 #Dataset from middle of 2016, 2016 is not complete, so we exclude it.
 vgsales <- vgsales[which(vgsales$Year < 2016),]
+specify_decimal <- function(x, k) trimws(format(round(x, k), nsmall=k))
 
 #Top10 sales per decade (bar chart)
 
@@ -120,7 +121,24 @@ ggplot(data = VenteParConsolePg) +
   labs(x="Platform", y="Share of sales for the top-selling genre", title="Share of sales for the top-selling genre per platform") +
   scale_x_discrete(guide = guide_axis(n.dodge = 2))
 
-# sales for top20 publiser (bars)
+# sales for top20 publiser
+
+salesPerPublisher <- ddply(vgsales,"Publisher",summarize,
+                           sales=sum(Global_Sales))
+
+salesPerPublisher <- salesPerPublisher[order(-salesPerPublisher$sales),]
+
+Top20Publishers <- c(salesPerPublisher[1:20,1])
+
+salesPerPublisher <- salesPerPublisher[which(salesPerPublisher$Publisher %in% Top20Publishers),]
+
+ggplot(data = salesPerPublisher) +
+  geom_bar(aes(x = Publisher, y = sales, fill = Publisher),alpha=0.5,stat="identity") +
+  geom_text(aes(x = Publisher, y = sales,label = specify_decimal(sales,0)),size=3,vjust=-1) + 
+  labs(x="Publisher", y="Sales (in millions)", title="Sales per publisher, between 1980 and 2015") +
+  theme(axis.title.x=element_blank(),
+        axis.text.x=element_blank(),
+        axis.ticks.x=element_blank())
 
 # percentage of genre for top8 publisher (piechart?)
 
@@ -143,11 +161,15 @@ topGenrePublisher <- merge(topGenrePublisher,venteParPublisher)
 
 topGenrePublisher$pg <- (topGenrePublisher$sales/topGenrePublisher$VT)*100
 
-specify_decimal <- function(x, k) trimws(format(round(x, k), nsmall=k))
-
-ggplot(data = topGenrePublisher) +
-  geom_bar(aes(x = Publisher, y = pg, fill=Genre),stat="identity") +
-  labs(x="Platform", y="Share of sales for the top-selling genre", title="Share of sales for the top-selling genre per platform") +
+ggplot(data = topGenrePublisher, aes( x = Publisher, y = pg, fill = Genre)) +
+  geom_bar(aes(x=Publisher, y =pg),stat="identity", position = position_fill()) +
+  theme(axis.title.x = element_blank(),
+        axis.title.y = element_blank()) + 
+  theme(legend.position='bottom') + 
+  guides(fill=guide_legend(nrow=2, byrow=TRUE)) + 
+  labs(x="Publisher", y="Share of sales for each genre", title="Share of sales for each genre per publisher") +
   scale_x_discrete(guide = guide_axis(n.dodge = 3))
+
+
 
 
