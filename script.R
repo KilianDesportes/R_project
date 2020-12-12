@@ -74,7 +74,7 @@ vgsalesTop5genre <- vgsales[vgsales$Genre %in% vec_vy,]
 vgsalesTop5genre
 
 salesGenreYear <- ddply(vgsalesTop5genre,c("Year","Genre"), summarize, 
-                      sales = sum(vgsales[which(vgsalesTop5genre$Genre == Genre & vgsalesTop5genre$Year == Year),11]))
+                      sales = sum(vgsalesTop5genre[which(vgsalesTop5genre$Genre == Genre & vgsalesTop5genre$Year == Year),11]))
 
 ggplot(salesGenreYear, aes(x=Year, y = sales, group = Genre, colour = Genre)) + 
   geom_line(size=1) + 
@@ -82,13 +82,72 @@ ggplot(salesGenreYear, aes(x=Year, y = sales, group = Genre, colour = Genre)) +
   scale_x_discrete(guide = guide_axis(check.overlap = TRUE))
 
 
-# evolution of sales per console during their lifetime (lines)
+# sales per console during their lifetime ---> a filtrer pour clarifier le plot
+
+salesYearPlatform <- ddply(vgsales,c("Platform","Year"),summarize,
+                                  sales=sum(Global_Sales))
+
+ggplot(salesYearPlatform, aes(x=Year, y = sales, group = Platform, colour = Platform)) + 
+  geom_line(size=1) + 
+  labs(x = "Year", y = "Sales (in millions)", title = "Sales per platform, per year") + 
+  scale_x_discrete(guide = guide_axis(check.overlap = TRUE))
 
 # most sold genre per console (bars)
 
-# percentage of genre for top10 publisher (piechart?)
+topGenreConsole <- ddply(vgsales,c("Platform","Genre"),summarize, 
+                         sales = sum(vgsales[which(vgsales$Genre == Genre & vgsales$Platform == Platform),11]))
+
+topGenreConsole <- ddply(topGenreConsole,"Platform",summarize, 
+                         genre = Genre,
+                         Vente= sales,
+                         rank=rank(-sales, ties.method="first"))
+
+topGenreConsole <- topGenreConsole[which(topGenreConsole$rank==1),]
+
+VenteParConsole <- ddply(vgsales,"Platform",summarize,
+                         VT = sum(vgsales[which(vgsales$Platform == Platform),11]))
+
+VenteParConsolePg <- ddply(topGenreConsole,"Platform",summarize,
+              Genre = genre,
+              vente = ((Vente/VenteParConsole[which(VenteParConsole$Platform == Platform),2] )*100))
+
+
+specify_decimal <- function(x, k) trimws(format(round(x, k), nsmall=k))
+
+ggplot(data = VenteParConsolePg) +
+  geom_bar(aes(x = Platform, y = vente, fill=Genre),alpha=0.5,stat="identity") +
+  geom_text(aes(x = Platform, y = vente,label = specify_decimal(vente,1)),size=3,vjust=-1) + 
+  labs(x="Platform", y="Share of sales for the top-selling genre", title="Share of sales for the top-selling genre per platform") +
+  scale_x_discrete(guide = guide_axis(n.dodge = 2))
 
 # sales for top20 publiser (bars)
 
+# percentage of genre for top8 publisher (piechart?)
+
+salesPerPublisher <- ddply(vgsales,"Publisher",summarize,
+                           sales=sum(Global_Sales))
+
+salesPerPublisher <- salesPerPublisher[order(-salesPerPublisher$sales),]
+
+Top8Publishers <- c(salesPerPublisher[1:8,1])
+
+topGenrePublisher <- ddply(vgsales,c("Genre","Publisher"),summarize, 
+                         sales = sum(vgsales[which(vgsales$Genre == Genre & vgsales$Publisher == Publisher),11]))
+
+venteParPublisher <- ddply(vgsales,"Publisher",summarize,
+                           VT = sum(vgsales[which(vgsales$Publisher == Publisher),11]))
+
+topGenrePublisher <- topGenrePublisher[which(topGenrePublisher$Publisher %in% Top8Publishers),]
+
+topGenrePublisher <- merge(topGenrePublisher,venteParPublisher)
+
+topGenrePublisher$pg <- (topGenrePublisher$sales/topGenrePublisher$VT)*100
+
+specify_decimal <- function(x, k) trimws(format(round(x, k), nsmall=k))
+
+ggplot(data = topGenrePublisher) +
+  geom_bar(aes(x = Publisher, y = pg, fill=Genre),stat="identity") +
+  labs(x="Platform", y="Share of sales for the top-selling genre", title="Share of sales for the top-selling genre per platform") +
+  scale_x_discrete(guide = guide_axis(n.dodge = 3))
 
 
