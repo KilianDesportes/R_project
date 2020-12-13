@@ -83,15 +83,37 @@ ggplot(salesGenreYear, aes(x=Year, y = sales, group = Genre, colour = Genre)) +
   scale_x_discrete(guide = guide_axis(check.overlap = TRUE))
 
 
-# sales per console during their lifetime ---> a filtrer pour clarifier le plot
+# sales per top3 console/Decade per year
 
-salesYearPlatform <- ddply(vgsales,c("Platform","Year"),summarize,
+vgsalesDecade$Decade <- as.numeric(vgsalesDecade$Year) - as.numeric(vgsalesDecade$Year) %% 10
+vgsalesDecade <- na.omit(vgsalesDecade)
+
+
+salesPerDecade <- ddply(vgsalesDecade,c("Decade","Platform"),summarize,
+                    sales = sum(Global_Sales))
+salesPerDecade <- salesPerDecade[order(salesPerDecade$Decade,-salesPerDecade$sales),]
+
+minDecade <- 1980
+maxDecade <- 2010
+vecPlatform <- c()
+for (dec in seq(from=minDecade, to=maxDecade, by=10)) {
+  tempDF <- salesPerDecade[which(salesPerDecade$Decade == dec),]
+  tempDF <- tempDF %>% slice(1:3)
+  vecPlatform <- c(vecPlatform,c(tempDF$Platform))
+}
+vecPlatform
+
+vgsalesFiltered = filter(vgsales,Platform %in% vecPlatform)
+
+salesYearPlatform <- ddply(vgsalesFiltered,c("Platform","Year"),summarize,
                                   sales=sum(Global_Sales))
 
-ggplot(salesYearPlatform, aes(x=Year, y = sales, group = Platform, colour = Platform)) + 
-  geom_line(size=1) + 
-  labs(x = "Year", y = "Sales (in millions)", title = "Sales per platform, per year") + 
-  scale_x_discrete(guide = guide_axis(check.overlap = TRUE))
+ggplot(data = salesYearPlatform, aes( x = Year, y = sales, fill = Platform)) +
+  geom_bar(aes(x=Year, y =sales),stat="identity", position = position_fill()) +
+  theme(legend.position='bottom') + 
+  guides(fill=guide_legend(nrow=2, byrow=TRUE)) + 
+  labs(title="Top3 platform per decade, share of sales") +
+  scale_x_discrete(guide = guide_axis(n.dodge = 3))
 
 # most sold genre per console (bars)
 
